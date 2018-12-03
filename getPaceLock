@@ -1,0 +1,45 @@
+Sub getPaceLock()
+    Dim wb As Workbook, ws As Worksheet, lo As ListObject, tasks As Object, _
+        lo_pace As ListObject, key As Variant, lc_af As ListColumn, _
+        lr As ListRow, lr_new As ListRow, cur_month As String
+    
+    cur_month = Format(Date, "MMMYY")
+'    With ActiveSheet
+'        If .ListObjects.Count > 0 Then
+'            Set lo_pace = .ListObjects(1)
+'        Else
+'            Set lo_pace = .ListObjects.Add( _
+'                SourceType:=xlSrcRange, _
+'                Source:=.Range(.Cells(1, 1), _
+'                               .Cells.SpecialCells(xlCellTypeLastCell)), _
+'                XlListObjectHasHeaders:=xlYes)
+'            lo_pace.TableStyle = ""
+'        End If
+'    End With
+    Set lo_pace = getListObj
+    Set lo = ThisWorkbook.Worksheets("Lock Summary").ListObjects(1)
+    If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.Delete
+    Set tasks = getTaskList
+    
+    For Each key In tasks.Keys
+        Set lc_af = lo_pace.ListColumns(key & "_AF")
+        For Each lr In lo_pace.ListRows
+            If Format(lc_af.DataBodyRange(lr.Index).value, "MMMYY") = cur_month Then
+                Set lr_new = lo.ListRows.Add
+                setLoValue lr_new, "PACE Job Number", getLoValue(lr, "JOB #")
+                setLoValue lr_new, "Task", key
+                setLoValue lr_new, "Forecast", lc_af.DataBodyRange(lr.Index).value
+            End If
+        Next lr
+        Application.StatusBar = "Getting " & key
+        DoEvents
+    Next key
+    Application.StatusBar = False
+    
+'    With lo.Parent.Parent.Worksheets("PACE Lock File")
+'        .Cells.Delete
+'        copyLockFile lo_pace, .Cells(1, 1)
+'    End With
+    
+    lo_pace.Parent.Parent.Close False
+End Sub
